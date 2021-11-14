@@ -1,0 +1,21 @@
+body {
+    margin: 0;
+}
+
+.horizontal {
+    display: flex;
+    flex-direction: row;
+    width: fit-content;
+}
+
+.box {
+    border: solid black 1px;
+    padding: 3px;
+    width: fit-content;
+}
+
+#listaPixeles {
+    height: 200px;
+    width: 300px;
+}
+
