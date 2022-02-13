@@ -1,0 +1,35 @@
+.main {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    padding: 20px;
+}
+
+.info {
+    flex: 0 0 250px;
+}
+.viewer {
+    margin-left: 20px;
+}
+
+.horizontal {
+    display: flex;
+    flex-direction: row;
+    width: fit-content;
+}
+
+.box {
+    border: solid black 1px;
+    padding: 3px;
+    width: fit-content;
+}
+
+#listaPixeles {
+    height: 200px;
+    width: 300px;
+}
+
+.infoPixel {
+    max-width: 1000px;
+}
+

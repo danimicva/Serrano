@@ -1,0 +1,32 @@
+<div class="main">
+    <div class="info">
+        <div>
+            Click: Pixel information<br>
+            Shift + click: Add to cut list<br>
+            Ctrl + click: Set paste destination<br><br>
+            Grid size: <input [(ngModel)]="gridSize" type=number min=50 max=500><br>
+            Pixel size: <input [(ngModel)]="pixelSize" type=number min=2 max=10><br>
+            Damage size: <input [(ngModel)]="damageSize" type=number min=2 max=50><br>
+        </div>
+        <div id="cellSelected"></div>
+        <div id="cellCopied"></div>
+        <button (click)="startModel()">Restart</button>
+        <button (click)="play = !play;">Play/Pause</button>
+        <button *ngIf="!play" (click)="step(true)">Step</button>
+        <div class="box">
+            Cut-Paste:
+            <div class="horizontal">
+                <div class="box">
+                    PixelSize: <input [(ngModel)]="cutPastePixelSize" type="number" min=1 max=10><br>
+                    Remove origin: <input [(ngModel)]="cutPasteData.removeOrigin" type="checkbox"><br>
+                    <button (click)="cutPaste()">Copy/Cut</button>
+                    <button (click)="restartCutPasteData()">Restart selection</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="viewer">
+        <app-viewer (mouseEvent)="mouseEvent($event)" #viewer></app-viewer>
+        <app-pixel-viewer [pixel]="currentPixel" [position]="currentPixelPosition"></app-pixel-viewer>
+    </div>
+</div>
