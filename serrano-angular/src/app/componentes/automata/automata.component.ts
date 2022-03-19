@@ -2,6 +2,7 @@ import { Component, Input, OnInit, ViewChild } from '@angular/core';
 import * as tf from '@tensorflow/tfjs';
 import { MyMouseEvent, ModelData, CutPasteData, XY } from 'src/app/interfaces/data-types';
 import { LogicService } from 'src/app/services/logic.service';
+import { ModelsService } from 'src/app/services/models.service';
 import { ViewerComponent } from '../viewer/viewer.component';
 
 @Component({
@@ -11,11 +12,14 @@ import { ViewerComponent } from '../viewer/viewer.component';
 })
 export class AutomataComponent implements OnInit {
 
+  models = ModelsService.Models;
+
   @ViewChild('viewer', { static: true }) public viewer: ViewerComponent;
 
   gridSize: number = 96;
   pixelSize: number = 4;
   damageSize: number = 8;
+  fireRate: number = 0.5;
 
   modelData: ModelData = undefined;
 
@@ -28,18 +32,22 @@ export class AutomataComponent implements OnInit {
 
   cutPasteData: CutPasteData;
 
-  constructor() { }
+  constructor(private modelsService: ModelsService) { }
 
   ngOnInit(): void {
     this.startModel();
   }
 
-  async startModel() {
+  public loadModel(path: string){
+    this.startModel(this.modelsService.getModelFullPath(path));
+  }
+
+  async startModel(model = undefined) {
 
     LogicService.DisposeModelData(this.modelData);
     this.restartCutPasteData();
 
-    this.modelData = await LogicService.InitModel(this.gridSize);
+    this.modelData = await LogicService.InitModel(this.gridSize, model ? model : this.modelsService.getModelFullPath(ModelsService.Models[0]));
     this.viewer.initCanvas(this.modelData.size, this.pixelSize);
     this.render();
   }
@@ -123,13 +131,16 @@ export class AutomataComponent implements OnInit {
   }
 
   step(force = false) {
-    if (!this.play && !force)
+    if ((!this.play && !force) || !this.modelData.state)
       return;
-    LogicService.Step(this.modelData);
+    LogicService.Step(this.modelData, this.fireRate);
     this.loadCurrentPixel();
   }
 
   private render() {
+    if(!this.modelData.state)
+      return;
+
     this.step();
     tf.tidy(() => {
       const imageData = LogicService.GetImageData(this.modelData);

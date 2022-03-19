@@ -4,9 +4,14 @@
             Click: Pixel information<br>
             Shift + click: Add to cut list<br>
             Ctrl + click: Set paste destination<br><br>
+            Model:
+            <select (change)="loadModel($event.target.value)">
+                <option *ngFor="let model of models">{{model}}</option>
+            </select>
             Grid size: <input [(ngModel)]="gridSize" type=number min=50 max=500><br>
             Pixel size: <input [(ngModel)]="pixelSize" type=number min=2 max=10><br>
-            Damage size: <input [(ngModel)]="damageSize" type=number min=2 max=50><br>
+            % prob: <input [(ngModel)]="fireRate" type=range min=0 max=1 step="0.1">{{fireRate}}<br>
+            <!--Damage size: <input [(ngModel)]="damageSize" type=number min=2 max=50><br>-->
         </div>
         <div id="cellSelected"></div>
         <div id="cellCopied"></div>

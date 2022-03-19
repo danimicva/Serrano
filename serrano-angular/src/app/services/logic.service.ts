@@ -12,12 +12,12 @@ export class LogicService {
   private static seed = tf.tensor(new Array(16).fill(0).map((x, i) => i < 3 ? 0 : 1), [1, 1, 1, 16]);
 
 
-  public static async InitModel(gridSize): Promise<ModelData> {
-    const temp = ModelsService.crearModelo()
-    const r = await fetch(temp);
+  public static async InitModel(gridSize, url: string): Promise<ModelData> {
+    
+    const r = await fetch(url);
     const consts = this.ParseConsts(await r.json());
 
-    const model = await tf.loadGraphModel(temp);
+    const model = await tf.loadGraphModel(url);
     Object.assign(model.weights, consts);
 
     const state = tf.variable(LogicService.GetInitState(gridSize));
@@ -136,11 +136,11 @@ export class LogicService {
     });
   }
 
-  public static Step(modelData: ModelData) {
+  public static Step(modelData: ModelData, fireRate: number) {
     tf.tidy(() => {
       modelData.state.assign(modelData.model.execute(
         {
-          x: modelData.state, fire_rate: tf.tensor(0.5),
+          x: modelData.state, fire_rate: tf.tensor(fireRate),
           angle: tf.tensor(0.0), step_size: tf.tensor(1.0)
         }, ['Identity']));
     });
