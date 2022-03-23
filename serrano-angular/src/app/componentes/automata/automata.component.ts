@@ -23,6 +23,7 @@ export class AutomataComponent implements OnInit {
 
   modelData: ModelData = undefined;
   actualModel
+  customModelString: string;
 
   currentPixelPosition: XY = undefined;
   currentPixel: any = undefined;
@@ -40,8 +41,14 @@ export class AutomataComponent implements OnInit {
     this.startModel();
   }
 
-  public loadModel(path: string){
+  public loadModel(path: string) {
     this.actualModel = this.modelsService.getModelFullPath(path);
+    this.startModel();
+  }
+
+  public loadCustomModel() {
+    this.actualModel = URL.createObjectURL(new Blob(
+      [this.customModelString], { type: 'application/json' }));
     this.startModel();
   }
 
@@ -141,7 +148,7 @@ export class AutomataComponent implements OnInit {
   }
 
   private render() {
-    if(!this.modelData.state)
+    if (!this.modelData.state)
       return;
 
     this.step();
