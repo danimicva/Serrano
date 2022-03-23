@@ -22,6 +22,7 @@ export class AutomataComponent implements OnInit {
   fireRate: number = 0.5;
 
   modelData: ModelData = undefined;
+  actualModel
 
   currentPixelPosition: XY = undefined;
   currentPixel: any = undefined;
@@ -35,19 +36,21 @@ export class AutomataComponent implements OnInit {
   constructor(private modelsService: ModelsService) { }
 
   ngOnInit(): void {
+    this.actualModel = this.modelsService.getModelFullPath(ModelsService.Models[0]);
     this.startModel();
   }
 
   public loadModel(path: string){
-    this.startModel(this.modelsService.getModelFullPath(path));
+    this.actualModel = this.modelsService.getModelFullPath(path);
+    this.startModel();
   }
 
-  async startModel(model = undefined) {
+  async startModel() {
 
     LogicService.DisposeModelData(this.modelData);
     this.restartCutPasteData();
 
-    this.modelData = await LogicService.InitModel(this.gridSize, model ? model : this.modelsService.getModelFullPath(ModelsService.Models[0]));
+    this.modelData = await LogicService.InitModel(this.gridSize, this.actualModel);
     this.viewer.initCanvas(this.modelData.size, this.pixelSize);
     this.render();
   }
