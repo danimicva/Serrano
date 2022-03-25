@@ -16,6 +16,7 @@ export class AutomataComponent implements OnInit {
 
   @ViewChild('viewer', { static: true }) public viewer: ViewerComponent;
 
+  channelN: number = 16;
   gridSize: number = 96;
   pixelSize: number = 4;
   damageSize: number = 8;
@@ -57,14 +58,14 @@ export class AutomataComponent implements OnInit {
     LogicService.DisposeModelData(this.modelData);
     this.restartCutPasteData();
 
-    this.modelData = await LogicService.InitModel(this.gridSize, this.actualModel);
+    this.modelData = await LogicService.InitModel(this.gridSize, this.actualModel, this.channelN);
     this.viewer.initCanvas(this.modelData.size, this.pixelSize);
     this.render();
   }
 
   mouseEvent(e: MyMouseEvent) {
     if (e.shiftKey && e.ctrlKey) {
-      LogicService.PlantSeed(this.modelData, e.pos);
+      LogicService.PlantSeed(this.modelData, e.pos, this.channelN);
     } else if (e.shiftKey) {
       this.addToCopyList(e.pos.x, e.pos.y);
     } else if (e.ctrlKey) {

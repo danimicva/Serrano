@@ -9,18 +9,15 @@ import { ModelsService } from './models.service';
 })
 export class LogicService {
 
-  private static seed = tf.tensor(new Array(16).fill(0).map((x, i) => i < 3 ? 0 : 1), [1, 1, 1, 16]);
+  public static async InitModel(gridSize, url: string, channelN: number): Promise<ModelData> {
 
-
-  public static async InitModel(gridSize, url: string): Promise<ModelData> {
-    
     const r = await fetch(url);
     const consts = this.ParseConsts(await r.json());
 
     const model = await tf.loadGraphModel(url);
     Object.assign(model.weights, consts);
 
-    const state = tf.variable(LogicService.GetInitState(gridSize));
+    const state = tf.variable(LogicService.GetInitState(gridSize, channelN));
     const size = { x: state.shape[1], y: state.shape[2] };
 
     return { model, state, size };
@@ -62,10 +59,11 @@ export class LogicService {
     return consts;
   }
 
-  public static GetInitState(gridSize) {
+  public static GetInitState(gridSize, channelN: number) {
     return tf.tidy(() => {
+      const seed = tf.tensor(new Array(channelN).fill(0).map((x, i) => i < 3 ? 0 : 1), [1, 1, 1, channelN]);
       const D2 = gridSize / 2;
-      const a = this.seed.pad([[0, 0], [D2 - 1, D2], [D2 - 1, D2], [0, 0]]);
+      const a = seed.pad([[0, 0], [D2 - 1, D2], [D2 - 1, D2], [0, 0]]);
       return a;
     });
   }
@@ -154,17 +152,21 @@ export class LogicService {
     return new ImageData(rgbaBytes, modelData.size.x, modelData.size.y);
   }
 
-  public static PlantSeed(modelData: ModelData, pos: XY) {
+  public static PlantSeed(modelData: ModelData, pos: XY, channelN: number) {
 
     if (this.IsPixelAliveByModelAndPos(modelData, pos))
       return;
 
-    const x2 = modelData.size.x - pos.x - this.seed.shape[2];
-    const y2 = modelData.size.y - pos.y - this.seed.shape[1];
-    if (pos.x < 0 || x2 < 0 || pos.y < 0 || y2 < 0)
-      return;
     tf.tidy(() => {
-      const a = this.seed.pad([[0, 0], [pos.y, y2], [pos.x, x2], [0, 0]]);
+
+      const seed = tf.tensor(new Array(channelN).fill(0).map((x, i) => i < 3 ? 0 : 1), [1, 1, 1, channelN]);
+
+      const x2 = modelData.size.x - pos.x - seed.shape[2];
+      const y2 = modelData.size.y - pos.y - seed.shape[1];
+      if (pos.x < 0 || x2 < 0 || pos.y < 0 || y2 < 0)
+        return;
+
+      const a = seed.pad([[0, 0], [pos.y, y2], [pos.x, x2], [0, 0]]);
       modelData.state.assign(modelData.state.add(a));
     });
   }
