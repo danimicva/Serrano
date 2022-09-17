@@ -1,23 +1,25 @@
 import { Injectable } from '@angular/core';
 import { ModelData, XY } from '../interfaces/data-types';
 import * as tf from '@tensorflow/tfjs';
-import { GraphModel, Rank, Tensor, Variable } from '@tensorflow/tfjs';
-import { ModelsService } from './models.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class LogicService {
 
-  public static async InitModel(gridSize, url: string, channelN: number): Promise<ModelData> {
+  public static async InitModel(gridSize, url: string): Promise<ModelData> {
 
     const r = await fetch(url);
     const consts = this.ParseConsts(await r.json());
 
-    const model = await tf.loadGraphModel(url);
+    const model: tf.GraphModel = await tf.loadGraphModel(url);
     Object.assign(model.weights, consts);
+    console.log(model);
+    const channel = model.inputs[0].shape[3];
+    console.log("Channel: " + channel);
 
-    const state = tf.variable(LogicService.GetInitState(gridSize, channelN));
+
+    const state = tf.variable(LogicService.GetInitState(gridSize, channel));
     const size = { x: state.shape[1], y: state.shape[2] };
 
     return { model, state, size };
@@ -79,7 +81,9 @@ export class LogicService {
       if (dest.x < 0 || x2 < 0 || dest.y < 0 || y2 < 0)
         return;
       const a = temp.pad([[0, 0], [dest.y, y2], [dest.x, x2], [0, 0]]);
-      debugger;
+
+      // ¿Esto añadiría la nueva célula de cero?
+      this.removePixel(modelData, dest);
       modelData.state.assign(modelData.state.add(a));
 
       if (removeOrig) {
@@ -144,22 +148,37 @@ export class LogicService {
     });
   }
 
-  public static GetImageData(modelData: ModelData) {
-    const rgba = modelData.state.slice([0, 0, 0, 0], [-1, -1, -1, 4]);
-    const a = modelData.state.slice([0, 0, 0, 3], [-1, -1, -1, 1]);
-    const img = tf.tensor(1.0).sub(a).add(rgba).mul(255);
+  public static GetImageData(modelData: ModelData, layer = -1) {
+    let img = undefined;
+
+    if (layer == -1) {
+      const rgba = modelData.state.slice([0, 0, 0, 0], [-1, -1, -1, 4]);
+      const a = modelData.state.slice([0, 0, 0, 3], [-1, -1, -1, 1]);
+      img = tf.tensor(1.0).sub(a).add(rgba).mul(255);
+    } else {
+      let tempLayer = modelData.state.slice([0, 0, 0, layer], [-1, -1, -1, 1]);
+      console.log(tempLayer.shape);
+      tempLayer = tempLayer.reshape([1, 96, 96]);
+      img = tempLayer.stack([tempLayer, tempLayer, tempLayer], 3);
+      img = img.mul(255);
+    }
+
+
     const rgbaBytes = new Uint8ClampedArray(img.dataSync());
     return new ImageData(rgbaBytes, modelData.size.x, modelData.size.y);
   }
 
-  public static PlantSeed(modelData: ModelData, pos: XY, channelN: number) {
+  public static PlantSeed(modelData: ModelData, pos: XY) {
 
     if (this.IsPixelAliveByModelAndPos(modelData, pos))
       return;
 
     tf.tidy(() => {
 
-      const seed = tf.tensor(new Array(channelN).fill(0).map((x, i) => i < 3 ? 0 : 1), [1, 1, 1, channelN]);
+      const channel = modelData.model.inputs[0].shape[3];
+
+
+      const seed = tf.tensor(new Array(channel).fill(0).map((x, i) => i < 3 ? 0 : 1), [1, 1, 1, channel]);
 
       const x2 = modelData.size.x - pos.x - seed.shape[2];
       const y2 = modelData.size.y - pos.y - seed.shape[1];
@@ -169,6 +188,7 @@ export class LogicService {
       const a = seed.pad([[0, 0], [pos.y, y2], [pos.x, x2], [0, 0]]);
       modelData.state.assign(modelData.state.add(a));
     });
+
   }
 
   public static Damage(modelData: ModelData, pos: XY, r) {

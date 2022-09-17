@@ -8,12 +8,14 @@ import { CutPasteData, MyMouseEvent, MyMouseEventType, XY } from 'src/app/interf
 })
 export class ViewerComponent implements OnInit {
 
-  context: CanvasRenderingContext2D;
+  context1: CanvasRenderingContext2D;
+  context2: CanvasRenderingContext2D;
 
-  @ViewChild('canvas', { static: true }) public canvas: ElementRef;
+  @ViewChild('canvas1', { static: true }) public canvas1: ElementRef;
+  @ViewChild('canvas2', { static: true }) public canvas2: ElementRef;
 
-  private size: XY;
-  private pixelSize: number;
+  public size: XY;
+  public pixelSize: number;
 
   @Output() mouseEvent = new EventEmitter<MyMouseEvent>();
 
@@ -27,15 +29,23 @@ export class ViewerComponent implements OnInit {
     this.size = size;
     this.pixelSize = pixelSize;
 
-    const canvasHtmlElement: HTMLCanvasElement = this.canvas.nativeElement;
-    this.context = canvasHtmlElement.getContext('2d');
+    const canvas1HtmlElement: HTMLCanvasElement = this.canvas1.nativeElement;
+    this.context1 = canvas1HtmlElement.getContext('2d');
 
-    canvasHtmlElement.width = this.size.x;
-    canvasHtmlElement.height = this.size.y;
-    canvasHtmlElement.style.width = `${this.size.x * this.pixelSize}px`;
-    canvasHtmlElement.style.height = `${this.size.y * this.pixelSize}px`;
+    canvas1HtmlElement.width = this.size.x;
+    canvas1HtmlElement.height = this.size.y;
+    canvas1HtmlElement.style.width = `${this.size.x * this.pixelSize}px`;
+    canvas1HtmlElement.style.height = `${this.size.y * this.pixelSize}px`;
 
-    canvasHtmlElement.onmousedown = e => {
+    const canvas2HtmlElement: HTMLCanvasElement = this.canvas2.nativeElement;
+    this.context2 = canvas2HtmlElement.getContext('2d');
+
+    canvas2HtmlElement.width = this.size.x;
+    canvas2HtmlElement.height = this.size.y;
+    canvas2HtmlElement.style.width = `${this.size.x * this.pixelSize}px`;
+    canvas2HtmlElement.style.height = `${this.size.y * this.pixelSize}px`;
+
+    canvas2HtmlElement.onmousedown = e => {
       if (e.buttons != 1)
         return;
       const x = Math.floor(e.offsetX / this.pixelSize);
@@ -48,7 +58,7 @@ export class ViewerComponent implements OnInit {
       });
     }
 
-    canvasHtmlElement.onmousemove = e => {
+    canvas2HtmlElement.onmousemove = e => {
       if (e.buttons != 1)
         return;
       const x = Math.floor(e.offsetX / this.pixelSize);
@@ -61,7 +71,7 @@ export class ViewerComponent implements OnInit {
       });
     }
 
-    canvasHtmlElement.onmouseup = e => {
+    canvas2HtmlElement.onmouseup = e => {
       if (e.buttons != 1)
         return;
       const x = Math.floor(e.offsetX / this.pixelSize);
@@ -77,18 +87,24 @@ export class ViewerComponent implements OnInit {
 
   public DrawCanvas(imageData: ImageData, cutPasteData: CutPasteData): void {
 
-    this.context.putImageData(imageData, 0, 0);
+    this.context1.clearRect(0, 0, this.size.x, this.size.y);
+    this.context2.clearRect(0, 0, this.size.x, this.size.y);
 
-    this.context.fillStyle = "rgba(0, 255, 0, 0.3)";
+
+
+    this.context1.putImageData(imageData, 0, 0);
+
+
+    this.context2.fillStyle = "rgba(0, 255, 0, 0.3)";
     cutPasteData.pixelList.forEach(p => {
-      this.context.fillRect(p.x, p.y, 1, 1);
+      this.context2.fillRect(p.x, p.y, 1, 1);
     });
 
     if (!(cutPasteData.shift.x == 0 && cutPasteData.shift.y == 0)
       && cutPasteData.pixelList.length > 0) {
-      this.context.fillStyle = "rgba(0, 0, 255, 0.3)";
+      this.context2.fillStyle = "rgba(0, 0, 255, 0.3)";
       cutPasteData.pixelList.forEach(p => {
-        this.context.fillRect(p.x + cutPasteData.shift.x, p.y + cutPasteData.shift.y, 1, 1);
+        this.context2.fillRect(p.x + cutPasteData.shift.x, p.y + cutPasteData.shift.y, 1, 1);
       });
       /* Código para pintar una línea hacia donde se mueve
     this.context.strokeStyle = "black";
@@ -105,6 +121,7 @@ export class ViewerComponent implements OnInit {
     );
     this.context.stroke();*/
     }
+
 
   }
 

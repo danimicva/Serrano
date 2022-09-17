@@ -19,9 +19,9 @@ sshpass -p $password ssh blasdelezo@vps-f81d1879.vps.ovh.net 'bash -s' << EOF
     printf "Descrompimiendo en el servidor\n"
     tar xzvf serrano.tar.gz
     printf "Borrando web antiguo\n"
-    echo $password | sudo -S rm -r /var/www/html/serrano
-    printf "Metiendo en /var/www/html/serrano \n"
-    echo $password | sudo -S mv dist/serrano-angular /var/www/html/serrano
+    #echo $password | sudo -S rm -r /var/www/html/serrano
+    printf "Metiendo en /var/www/html/serrano/dev \n"
+    echo $password | sudo -S mv dist/serrano-angular /var/www/html/serrano/dev
     printf "Borrando zip\n"
     rm serrano.tar.gz
     printf "Borrando carpeta"

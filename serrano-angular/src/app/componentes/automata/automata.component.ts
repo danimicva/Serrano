@@ -16,11 +16,12 @@ export class AutomataComponent implements OnInit {
 
   @ViewChild('viewer', { static: true }) public viewer: ViewerComponent;
 
-  channelN: number = 16;
   gridSize: number = 96;
   pixelSize: number = 4;
   damageSize: number = 8;
   fireRate: number = 0.5;
+
+  public shownChannel: number = -1
 
   modelData: ModelData = undefined;
   actualModel
@@ -58,14 +59,16 @@ export class AutomataComponent implements OnInit {
     LogicService.DisposeModelData(this.modelData);
     this.restartCutPasteData();
 
-    this.modelData = await LogicService.InitModel(this.gridSize, this.actualModel, this.channelN);
+    this.modelData = await LogicService.InitModel(this.gridSize, this.actualModel);
     this.viewer.initCanvas(this.modelData.size, this.pixelSize);
     this.render();
+    this.draw();
   }
 
   mouseEvent(e: MyMouseEvent) {
     if (e.shiftKey && e.ctrlKey) {
-      LogicService.PlantSeed(this.modelData, e.pos, this.channelN);
+      LogicService.PlantSeed(this.modelData, e.pos);
+      this.draw();
     } else if (e.shiftKey) {
       this.addToCopyList(e.pos.x, e.pos.y);
     } else if (e.ctrlKey) {
@@ -88,7 +91,6 @@ export class AutomataComponent implements OnInit {
         [1, 1, 1]
       );
     } catch (e) {
-      debugger;
       console.log(e);
     }
   }
@@ -101,6 +103,7 @@ export class AutomataComponent implements OnInit {
       x: x - this.cutPasteData.pixelList[0].x,
       y: y - this.cutPasteData.pixelList[0].y
     };
+    this.draw();
   }
 
   addToCopyList(x, y) {
@@ -114,7 +117,7 @@ export class AutomataComponent implements OnInit {
       }
     }
     this.cutPasteData.pixelList.sort((a, b) => a.x != b.x ? a.x - b.x : a.y - b.y);
-
+    this.draw();
   }
 
   cutPaste() {
@@ -139,25 +142,34 @@ export class AutomataComponent implements OnInit {
       this.play = true;
 
     this.loadCurrentPixel();
+    this.draw();
   }
 
-  step(force = false) {
-    if ((!this.play && !force) || !this.modelData.state)
-      return;
+  step() {
     LogicService.Step(this.modelData, this.fireRate);
+    this.draw();
     this.loadCurrentPixel();
   }
 
   private render() {
     if (!this.modelData.state)
       return;
+    if ((this.play) || !this.modelData.state) {
+      this.step();
+    }
+    requestAnimationFrame(() => this.render());
+  }
 
-    this.step();
+  private draw() {
     tf.tidy(() => {
-      const imageData = LogicService.GetImageData(this.modelData);
+      const imageData = LogicService.GetImageData(this.modelData, this.shownChannel);
       this.viewer.DrawCanvas(imageData, this.cutPasteData);
     });
-    requestAnimationFrame(() => this.render());
+  }
+
+  public changeShownChannel(channel) {
+    this.shownChannel = parseInt(channel);
+    this.draw();
   }
 
 

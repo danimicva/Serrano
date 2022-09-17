@@ -1,0 +1,13 @@
+Bugs:
+ - (Hecho) Al marcar células desaparece el modelo (Sólo chrome)
+ - (Hecho) Al pegar células sobre otras vivas se suman los valores en vez de pisarse
+
+Nuevas funcionalidades:
+ - Mostrar dos modelos y que se pueda copiar y pegar entre ellos
+ - Mostrar máscara de células vivas
+ - (Hecho) Generar imágenes a partir de una capa en particular
+
+Optimizaciones:
+ - Mejorar herramienta de selección
+ - Copiar y pegar con máscaras y no pixel a pixel
+ - (Hecho) Sacar el CHANNEL_N del modelo
