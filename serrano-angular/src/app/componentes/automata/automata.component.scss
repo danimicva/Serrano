@@ -5,9 +5,16 @@
     padding: 20px;
 }
 
-.info {
+.izq {
     flex: 0 0 250px;
 }
+
+.info {}
+
+.clipboard {
+    width: 150px;
+}
+
 .viewer {
     margin-left: 20px;
 }
@@ -33,6 +40,4 @@
     max-width: 1000px;
 }
 
-.customModelTextArea{
-    
-}
+.customModelTextArea {}

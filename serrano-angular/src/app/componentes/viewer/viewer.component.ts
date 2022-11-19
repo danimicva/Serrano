@@ -72,8 +72,9 @@ export class ViewerComponent implements OnInit {
     }
 
     canvas2HtmlElement.onmouseup = e => {
-      if (e.buttons != 1)
-        return;
+
+      //if (e.buttons != 1)
+      //  return;
       const x = Math.floor(e.offsetX / this.pixelSize);
       const y = Math.floor(e.offsetY / this.pixelSize);
       this.mouseEvent.emit({
@@ -85,12 +86,10 @@ export class ViewerComponent implements OnInit {
     }
   }
 
-  public DrawCanvas(imageData: ImageData, cutPasteData: CutPasteData): void {
+  public DrawCanvas(imageData: ImageData, cutPasteData: CutPasteData, lassoList: XY[]): void {
 
     this.context1.clearRect(0, 0, this.size.x, this.size.y);
     this.context2.clearRect(0, 0, this.size.x, this.size.y);
-
-
 
     this.context1.putImageData(imageData, 0, 0);
 
@@ -106,10 +105,12 @@ export class ViewerComponent implements OnInit {
       cutPasteData.pixelList.forEach(p => {
         this.context2.fillRect(p.x + cutPasteData.shift.x, p.y + cutPasteData.shift.y, 1, 1);
       });
+
+
       /* Código para pintar una línea hacia donde se mueve
     this.context.strokeStyle = "black";
     this.context.lineWidth = 1;
-
+ 
     this.context.beginPath();
     this.context.moveTo(
       cutPasteData.pixelList[0].x,
@@ -119,11 +120,45 @@ export class ViewerComponent implements OnInit {
       cutPasteData.pixelList[0].x + cutPasteData.shift.x,
       cutPasteData.pixelList[0].y + cutPasteData.shift.y
     );
-    this.context.stroke();*/
+    .stroke();*/
     }
 
+    this.renderLasso(lassoList);
 
+    //this.renderLasso2(this.context2, lassoList);
   }
 
+  renderLasso2(ctx, points) {
+    if (points.length <= 1) {
+      return;
+    }
+
+    ctx.setLineDash([5, 3]);
+    ctx.strokeStyle = 'black';
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (var index = 0; index < points.length; index++) {
+      var point = points[index];
+      if (index == 0) {
+        ctx.moveTo(point.x, point.y);
+      } else {
+        ctx.lineTo(point.x, point.y);
+      }
+    }
+
+    //ctx.lineTo(start.x, start.y);
+    ctx.lineTo(points[0].x, points[0].y);
+    ctx.fill();
+    ctx.stroke();
+    ctx.closePath();
+  }
+
+  renderLasso(lassoList) {
+    this.context2.fillStyle = "rgba(255, 0, 0, 0.3)";
+    lassoList.forEach(p => {
+      this.context2.fillRect(p.x, p.y, 1, 1);
+    });
+  }
 
 }

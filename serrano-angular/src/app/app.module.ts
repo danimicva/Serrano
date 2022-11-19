@@ -8,13 +8,15 @@ import { AutomataComponent } from './componentes/automata/automata.component';
 import { FormsModule } from '@angular/forms';
 import { ViewerComponent } from './componentes/viewer/viewer.component';
 import { PixelViewerComponent } from './componentes/pixel-viewer/pixel-viewer.component';
+import { MiniViewerComponent } from './componentes/mini-viewer/mini-viewer.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     AutomataComponent,
     ViewerComponent,
-    PixelViewerComponent
+    PixelViewerComponent,
+    MiniViewerComponent
   ],
   imports: [
     BrowserModule,

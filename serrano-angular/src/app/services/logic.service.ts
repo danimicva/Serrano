@@ -14,16 +14,15 @@ export class LogicService {
 
     const model: tf.GraphModel = await tf.loadGraphModel(url);
     Object.assign(model.weights, consts);
-    console.log(model);
-    const channel = model.inputs[0].shape[3];
-    console.log("Channel: " + channel);
+    const channelN = model.inputs[0].shape[3];
 
 
-    const state = tf.variable(LogicService.GetInitState(gridSize, channel));
+    const state = tf.variable(LogicService.GetInitState(gridSize, channelN));
     const size = { x: state.shape[1], y: state.shape[2] };
 
-    return { model, state, size };
+    return { model, state, size, channelN };
   }
+
 
   private static ParseConsts(model_graph) {
     const dtypes = {
@@ -70,21 +69,25 @@ export class LogicService {
     });
   }
 
-  public static CopyPixel(modelData: ModelData, orig: XY, dest: XY, removeOrig) {
+  public static CopyPixel(originState: any, destState: any, orig: XY, dest: XY, removeOrig) {
 
     tf.tidy(() => {
 
-      let temp = modelData.state.slice([0, orig.y, orig.x, 0], [1, 1, 1, -1]);
+      //let temp = modelData.state.slice([0, orig.y, orig.x, 0], [1, 1, 1, -1]);
+      let temp = originState.slice([0, orig.y, orig.x, 0], [1, 1, 1, -1]);
 
-      const x2 = modelData.size.x - dest.x - temp.shape[2];
-      const y2 = modelData.size.y - dest.y - temp.shape[1];
+      //const x2 = modelData.size.x - dest.x - temp.shape[2];
+      //const y2 = modelData.size.y - dest.y - temp.shape[1];
+      const x2 = originState.shape[2] - dest.x - temp.shape[2];
+      const y2 = originState.shape[1] - dest.y - temp.shape[1];
       if (dest.x < 0 || x2 < 0 || dest.y < 0 || y2 < 0)
         return;
       const a = temp.pad([[0, 0], [dest.y, y2], [dest.x, x2], [0, 0]]);
 
       // ¿Esto añadiría la nueva célula de cero?
-      this.removePixel(modelData, dest);
-      modelData.state.assign(modelData.state.add(a));
+      this.removePixel(destState, dest);
+      //modelData.state.assign(modelData.state.add(a));
+      destState.assign(destState.add(a));
 
       if (removeOrig) {
         /*  const rx = tf.range(0, modelData.size.x).sub(orig.x).square().expandDims(0);
@@ -92,16 +95,16 @@ export class LogicService {
           const mask = rx.add(ry).greaterEqual(1.0).expandDims(2);
           modelData.state.assign(modelData.state.mul(mask));
           */
-        this.removePixel(modelData, orig);
+        this.removePixel(originState, orig);
       }
     });
   }
 
-  private static removePixel(modelData: ModelData, pos: XY) {
-    const rx = tf.range(0, modelData.size.x).sub(pos.x).square().expandDims(0);
-    const ry = tf.range(0, modelData.size.y).sub(pos.y).square().expandDims(1);
+  private static removePixel(state: any, pos: XY) {
+    const rx = tf.range(0, state.shape[2]).sub(pos.x).square().expandDims(0);
+    const ry = tf.range(0, state.shape[1]).sub(pos.y).square().expandDims(1);
     const mask = rx.add(ry).greaterEqual(1.0).expandDims(2);
-    modelData.state.assign(modelData.state.mul(mask));
+    state.assign(state.mul(mask));
   }
 
   public static CopyPixelRange(modelData: ModelData, orig: XY, dest: XY, range: XY, removeOrig) {
@@ -148,24 +151,24 @@ export class LogicService {
     });
   }
 
-  public static GetImageData(modelData: ModelData, layer = -1) {
+  public static GetImageData(state: tf.Variable<tf.Rank>, size: XY, layer = -1) {
     let img = undefined;
 
     if (layer == -1) {
-      const rgba = modelData.state.slice([0, 0, 0, 0], [-1, -1, -1, 4]);
-      const a = modelData.state.slice([0, 0, 0, 3], [-1, -1, -1, 1]);
+      const rgba = state.slice([0, 0, 0, 0], [-1, -1, -1, 4]);
+      const a = state.slice([0, 0, 0, 3], [-1, -1, -1, 1]);
       img = tf.tensor(1.0).sub(a).add(rgba).mul(255);
     } else {
-      let tempLayer = modelData.state.slice([0, 0, 0, layer], [-1, -1, -1, 1]);
-      console.log(tempLayer.shape);
+      let tempLayer = state.slice([0, 0, 0, layer], [-1, -1, -1, 1]);
+      //console.log(tempLayer.shape);
       tempLayer = tempLayer.reshape([1, 96, 96]);
       img = tempLayer.stack([tempLayer, tempLayer, tempLayer], 3);
       img = img.mul(255);
     }
 
-
+    //debugger;
     const rgbaBytes = new Uint8ClampedArray(img.dataSync());
-    return new ImageData(rgbaBytes, modelData.size.x, modelData.size.y);
+    return new ImageData(rgbaBytes, size.x, size.y);
   }
 
   public static PlantSeed(modelData: ModelData, pos: XY) {
@@ -174,11 +177,7 @@ export class LogicService {
       return;
 
     tf.tidy(() => {
-
-      const channel = modelData.model.inputs[0].shape[3];
-
-
-      const seed = tf.tensor(new Array(channel).fill(0).map((x, i) => i < 3 ? 0 : 1), [1, 1, 1, channel]);
+      const seed = tf.tensor(new Array(modelData.channelN).fill(0).map((x, i) => i < 3 ? 0 : 1), [1, 1, 1, modelData.channelN]);
 
       const x2 = modelData.size.x - pos.x - seed.shape[2];
       const y2 = modelData.size.y - pos.y - seed.shape[1];
