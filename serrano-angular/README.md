@@ -25,7 +25,7 @@ Activar entorno
 `conda activate mangold-env`
 
 instalar cliente angular
-`npm install -g @angular/cli@14.0.0`
+`npm install -g @angular/cli@15.0.0`
 
 Instalar paquetes npm
 `npm install`
