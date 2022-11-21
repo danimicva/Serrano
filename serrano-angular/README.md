@@ -18,14 +18,14 @@ sudo unzip serrano.zip
 
 Crear entorno conda con env.yml
  
-`conda create env -f env.yml -n mangold-env`
+`conda env create --file environment.yml`
 
 Activar entorno
 
 `conda activate mangold-env`
 
 instalar cliente angular
-`npm install -g @angular/cli`
+`npm install -g @angular/cli@14.0.0`
 
 Instalar paquetes npm
 `npm install`
