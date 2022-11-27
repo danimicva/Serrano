@@ -1,9 +1,18 @@
-import { Component, Input, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import * as tf from '@tensorflow/tfjs';
 import { MyMouseEvent, ModelData, CutPasteData, XY, ClipboardData, MyMouseEventType } from 'src/app/interfaces/data-types';
 import { LogicService } from 'src/app/services/logic.service';
 import { ModelsService } from 'src/app/services/models.service';
+import { UtilsService } from 'src/app/services/utils.service';
 import { ViewerComponent } from '../viewer/viewer.component';
+
+export enum Mode {
+  Inspect = 1,
+  Selection = 2,
+  Write = 3,
+  PlantSeed = 4,
+  Damage = 5
+}
 
 @Component({
   selector: 'app-automata',
@@ -11,6 +20,8 @@ import { ViewerComponent } from '../viewer/viewer.component';
   styleUrls: ['./automata.component.scss']
 })
 export class AutomataComponent implements OnInit {
+
+  modeType = Mode;
 
   models = ModelsService.Models;
 
@@ -21,14 +32,17 @@ export class AutomataComponent implements OnInit {
   damageSize: number = 8;
   fireRate: number = 0.5;
 
+  mode: Mode = Mode.Inspect;
+
+  writeChannel: number = 0;
+  writeValue: number = 1;
+  writeRadius: number = 5;
+
   public shownChannel: number = -1
 
   modelData: ModelData = undefined;
   actualModel
   customModelString: string;
-
-  currentPixelPosition: XY = undefined;
-  currentPixel: any = undefined;
 
   cutPastePixelSize: number = 1;
 
@@ -40,7 +54,13 @@ export class AutomataComponent implements OnInit {
 
   lassoList: XY[] = [];
 
-  constructor(private modelsService: ModelsService) { }
+  constructor(
+    private modelsService: ModelsService,
+    private utilsService: UtilsService) { }
+
+  createRange(i: number) {
+    return new Array(i).fill(0).map((n, index) => index);
+  }
 
   ngOnInit(): void {
     this.restartCutPasteData();
@@ -72,40 +92,52 @@ export class AutomataComponent implements OnInit {
   }
   lasso = false;
   mouseEvent(e: MyMouseEvent) {
-    console.log("%o", e);
-    if (e.shiftKey && e.ctrlKey) {
-      LogicService.PlantSeed(this.modelData, e.pos);
-      this.draw();
-    } else if (e.shiftKey) {
-      //this.addToCopyList(e.pos.x, e.pos.y);
-      if (this.lasso) {
-        if (e.type == MyMouseEventType.MouseMove) {
-          this.addToLassoList(e.pos.x, e.pos.y);
-        } else if (e.type == MyMouseEventType.MouseUp) {
-          this.lasso = false;
-          this.addToLassoList(this.lassoList[0].x, this.lassoList[0].y, true);
-          this.closeLasso();
-        }
-      } else {
-        if (e.type == MyMouseEventType.MouseDown) {
-          this.lasso = true;
-          this.lassoList = [];
-          this.addToLassoList(e.pos.x, e.pos.y);
-          this.restartCutPasteData();
-        }
-      }
 
-    } else if (e.ctrlKey) {
-      this.calculateDistance(e.pos.x, e.pos.y);
-    } else {
-      if (e.type == MyMouseEventType.MouseUp && this.lasso) {
-        this.addToLassoList(this.lassoList[0].x, this.lassoList[0].y, true);
-        this.closeLasso();
-      }
-      //LogicService.Damage(this.modelData, e.xy, this.damageSize);
-      this.currentPixelPosition = { x: e.pos.x, y: e.pos.y };
-      this.loadCurrentPixel();
+    if (!this.mode)
+      return;
+
+    switch (this.mode) {
+      case Mode.Inspect:
+        this.loadCurrentPixel(e.pos.x, e.pos.y);
+        break;
+
+      case Mode.Selection:
+        if (this.lasso) {
+          if (e.type == MyMouseEventType.MouseMove) {
+            this.addToLassoList(e.pos.x, e.pos.y);
+          } else if (e.type == MyMouseEventType.MouseUp) {
+            this.lasso = false;
+            this.addToLassoList(this.lassoList[0].x, this.lassoList[0].y, true);
+            this.closeLasso();
+          }
+        } else {
+          if (e.ctrlKey) {
+            this.calculateDistance(e.pos.x, e.pos.y);
+          } else if (e.type == MyMouseEventType.MouseDown) {
+            this.lasso = true;
+            this.lassoList = [];
+            this.addToLassoList(e.pos.x, e.pos.y);
+            this.restartCutPasteData();
+          }
+        }
+        break;
+
+      case Mode.Write:
+        //if (e.type == MyMouseEventType.MouseDown) {
+        LogicService.Write(this.modelData, { x: e.pos.x, y: e.pos.y }, Number(this.writeRadius), Number(this.writeChannel), Number(this.writeValue));
+        //}
+        break;
+
+      case Mode.PlantSeed:
+        LogicService.PlantSeed(this.modelData, e.pos);
+        break;
+
+      case Mode.Damage:
+        LogicService.Damage(this.modelData, { x: e.pos.x, y: e.pos.y }, this.damageSize);
+        break;
     }
+    this.draw();
+    this.reloadPixelInfo();
   }
 
   addToLassoList(x, y, force = false) {
@@ -124,10 +156,7 @@ export class AutomataComponent implements OnInit {
 
     for (let i = firstX + 1; i < lastX; i++) {
       for (let j = firstY + 1; j < lastY; j++) {
-        //for (let i = 0; i < this.modelData.size.x; i++) {
-        //  for (let j = 0; j < this.modelData.size.y; j++) {
-
-        if (this.isPixelInLasso2(this.lassoList, i, j)) {
+        if (this.utilsService.isPixelInLasso(this.lassoList, i, j)) {
           this.addToCopyList(i, j);
         }
       }
@@ -137,134 +166,24 @@ export class AutomataComponent implements OnInit {
 
   }
 
-  /**
-   * Función obtenida de Codepen.io
-   * 
-   * https://codepen.io/cranes/pen/GvobwB
-   * 
-   * https://blog.codepen.io/documentation/licensing/
-   * @param lassoList 
-   * @param x 
-   * @param y 
-   * @returns 
-   */
-  isPixelInLasso2(lassoList, x, y) {
 
-    if (lassoList.length <= 1) {
-      return false;
-    }
+  currentPixelPosition: XY = undefined;
+  currentPixel: any = undefined;
 
-    let intercessionCount = 0;
-    for (let index = 1; index < lassoList.length; index++) {
-      let start = lassoList[index - 1];
-      let end = lassoList[index];
-      let line = { start: start, end: end };
-
-      //Testes
-
-      //*************************************************
-      //* Adicionar teste bounding box intersection aqui *
-      //*************************************************
-
-      var ray = { Start: { x, y }, End: { x: 99999, y: 0 } };
-      var segment = { Start: start, End: end };
-      var rayDistance = {
-        x: ray.End.x - ray.Start.x,
-        y: ray.End.y - ray.Start.y
-      };
-      var segDistance = {
-        x: segment.End.x - segment.Start.x,
-        y: segment.End.y - segment.Start.y
-      };
-
-      var rayLength = Math.sqrt(Math.pow(rayDistance.x, 2) + Math.pow(rayDistance.y, 2));
-      var segLength = Math.sqrt(Math.pow(segDistance.x, 2) + Math.pow(segDistance.y, 2));
-
-      if ((rayDistance.x / rayLength == segDistance.x / segLength) &&
-        (rayDistance.y / rayLength == segDistance.y / segLength)) {
-        continue;
-      }
-
-      var T2 = (rayDistance.x * (segment.Start.y - ray.Start.y) + rayDistance.y * (ray.Start.x - segment.Start.x)) / (segDistance.x * rayDistance.y - segDistance.y * rayDistance.x);
-      var T1 = (segment.Start.x + segDistance.x * T2 - ray.Start.x) / rayDistance.x;
-
-      //Parametric check.
-      if (T1 < 0) {
-        continue;
-      }
-      if (T2 < 0 || T2 > 1) {
-        continue
-      };
-      if (isNaN(T1)) {
-        continue
-      }; //rayDistance.X = 0
-
-      intercessionCount++;
-    }
-    return intercessionCount & 1;
-    /*
-        if (intercessionCount == 0) {
-          return false;
-        }
-        console.log(intercessionCount);
-        if (intercessionCount & 1) {
-          return true;
-        } else {
-          return false;
-        }*/
+  private loadCurrentPixel(x: number, y: number) {
+    this.currentPixelPosition = { x, y };
+    this.reloadPixelInfo();
   }
 
+  private reloadPixelInfo() {
 
-  private isPixelInLasso(lassoList: XY[], x, y): boolean {
-
-    // If the pixel is in the lasso, we do not count it.
-    if (this.lassoList.find(p => p.x == x && p.y == y) != undefined)
-      return false;
-
-    // First we seek for inclusion in the horizontal axis
-    let hAxis = this.lassoList.filter(p => p.y == y);
-    hAxis = hAxis.sort((a, b) => a.x - b.x);
-
-    // If the pixel is before the first pixel in the lasso, is not in there
-    if (x <= hAxis[0].x)
-      return false;
-
-    // First we seek for inclusion in the horizontal axis
-    let vAxis = this.lassoList.filter(p => p.x == x);
-    vAxis = vAxis.sort((a, b) => a.y - b.y);
-
-    // If the pixel is before the first pixel in the lasso, is not in there
-    if (y <= vAxis[0].y)
-      return false;
-
-    // We start at the first pixel of the lasso (inside of it).
-    // Whenever we change pixel, we switch the openness.
-    // if we find the pixel before the point, lassoOpen will tell us if it's inside
-    let lassoXOpen = true;
-    for (let i = 1; i < hAxis.length; i++) {
-      if (x < hAxis[i].x)
-        if (!lassoXOpen)
-          return false;
-        else {
-          return lassoXOpen;
-        }
-      lassoXOpen = !lassoXOpen;
-    }
-
-    return false;
-  }
-
-  private loadCurrentPixel() {
     if (!this.currentPixelPosition)
       return;
-    try {
-      this.currentPixel = this.modelData.state.slice(
-        [0, this.currentPixelPosition.y, this.currentPixelPosition.x],
-        [1, 1, 1]
-      );
-    } catch (e) {
-      console.log(e);
-    }
+
+    this.currentPixel = this.modelData.state.slice(
+      [0, this.currentPixelPosition.y, this.currentPixelPosition.x],
+      [1, 1, 1]
+    );
   }
 
   calculateDistance(x, y) {
@@ -300,30 +219,26 @@ export class AutomataComponent implements OnInit {
       this.play = false;
       despausar = true;
     }
-    //while (this.cutPasteData.pixelList.length > 0) {
-    //while (pixelList.length > 0) {
     for (let p of pixelList) {
-      //const p = pixelList[0];
       LogicService.CopyPixel(
         originState, destState,
         { x: p.x, y: p.y },
         { x: p.x + shift.x, y: p.y + shift.y },
         removeOrigin
       );
-      //pixelList.shift();
     };
 
     if (despausar)
       this.play = true;
 
-    this.loadCurrentPixel();
+    this.reloadPixelInfo();
     this.draw();
   }
 
   step() {
     LogicService.Step(this.modelData, this.fireRate);
     this.draw();
-    this.loadCurrentPixel();
+    this.reloadPixelInfo();
   }
 
   private render() {

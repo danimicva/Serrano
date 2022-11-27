@@ -4,7 +4,31 @@
             <div>
                 Click: Pixel information<br>
                 Shift + click: Add to cut list<br>
-                Ctrl + click: Set paste destination<br><br>
+                Ctrl + click: Set paste destination<br>
+                <div>
+                    Mode: {{mode}}<br>
+                    <input type="radio" id="mode_inspect" name="mode" [(ngModel)]="mode" [value]="modeType.Inspect" />
+                    <label for="mode_inspect">Inspect</label>
+                    <input type="radio" id="mode_selection" name="mode" [(ngModel)]="mode"
+                        [value]="modeType.Selection" />
+                    <label for="mode_selection">Selection</label>
+                    <input type="radio" id="mode_write" name="mode" [(ngModel)]="mode" [value]="modeType.Write" />
+                    <label for="mode_write">Write</label>
+                    <input type="radio" id="mode_plantseed" name="mode" [(ngModel)]="mode"
+                        [value]="modeType.PlantSeed" />
+                    <label for="mode_plantseed">Plant seed</label>
+                    <input type="radio" id="mode_damage" name="mode" [(ngModel)]="mode" [value]="modeType.Damage" />
+                    <label for="mode_damage">Damage</label>
+                </div>
+                <div *ngIf="mode==modeType.Write">
+                    Channel:
+                    <input type="number" max="15" min="0" step="1" [(ngModel)]="writeChannel" /><br />
+                    Value:
+                    <input type="number" max="1" min="0" step="0.1" [(ngModel)]="writeValue" /><br />
+                    Radius:
+                    <input type="number" max="20" min="1" step="1" [(ngModel)]="writeRadius" /><br />
+
+                </div>
                 Model:
                 <select (change)="loadModel($event.target.value)">
                     <option *ngFor="let model of models">{{model}}</option>

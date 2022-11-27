@@ -23,7 +23,6 @@ export class LogicService {
     return { model, state, size, channelN };
   }
 
-
   private static ParseConsts(model_graph) {
     const dtypes = {
       'DT_INT32': ['int32', 'intVal', Int32Array],
@@ -72,12 +71,8 @@ export class LogicService {
   public static CopyPixel(originState: any, destState: any, orig: XY, dest: XY, removeOrig) {
 
     tf.tidy(() => {
-
-      //let temp = modelData.state.slice([0, orig.y, orig.x, 0], [1, 1, 1, -1]);
       let temp = originState.slice([0, orig.y, orig.x, 0], [1, 1, 1, -1]);
 
-      //const x2 = modelData.size.x - dest.x - temp.shape[2];
-      //const y2 = modelData.size.y - dest.y - temp.shape[1];
       const x2 = originState.shape[2] - dest.x - temp.shape[2];
       const y2 = originState.shape[1] - dest.y - temp.shape[1];
       if (dest.x < 0 || x2 < 0 || dest.y < 0 || y2 < 0)
@@ -86,15 +81,9 @@ export class LogicService {
 
       // ¿Esto añadiría la nueva célula de cero?
       this.removePixel(destState, dest);
-      //modelData.state.assign(modelData.state.add(a));
       destState.assign(destState.add(a));
 
       if (removeOrig) {
-        /*  const rx = tf.range(0, modelData.size.x).sub(orig.x).square().expandDims(0);
-          const ry = tf.range(0, modelData.size.y).sub(orig.y).square().expandDims(1);
-          const mask = rx.add(ry).greaterEqual(1.0).expandDims(2);
-          modelData.state.assign(modelData.state.mul(mask));
-          */
         this.removePixel(originState, orig);
       }
     });
@@ -161,8 +150,10 @@ export class LogicService {
     } else {
       let tempLayer = state.slice([0, 0, 0, layer], [-1, -1, -1, 1]);
       //console.log(tempLayer.shape);
-      tempLayer = tempLayer.reshape([1, 96, 96]);
-      img = tempLayer.stack([tempLayer, tempLayer, tempLayer], 3);
+      tempLayer = tf.tensor(1.0).sub(tempLayer);
+      tempLayer = tempLayer.reshape([1, size.x, size.y]);
+      const a = tf.tensor(new Array(size.x * size.y).fill(1), [1, size.x, size.y]);
+      img = tempLayer.stack([tempLayer, tempLayer, a], 3);
       img = img.mul(255);
     }
 
@@ -196,6 +187,21 @@ export class LogicService {
       const ry = tf.range(0, modelData.size.y).sub(pos.y).div(r).square().expandDims(1);
       const mask = rx.add(ry).greater(1.0).expandDims(2);
       modelData.state.assign(modelData.state.mul(mask));
+    });
+  }
+
+  public static Write(modelData: ModelData, pos: XY, r: number, channel: number, value: number) {
+    console.log("Write: pos: " + pos + " r: " + r + " channel: " + channel + " value: " + value);
+    tf.tidy(() => {
+
+      const rx = tf.range(0, modelData.size.x).sub(pos.x).div(r).square().expandDims(0);
+      const ry = tf.range(0, modelData.size.y).sub(pos.y).div(r).square().expandDims(1);
+      const mask1 = rx.add(ry).greater(1.0).expandDims(2).pad([[0, 0], [0, 0], [channel, 15 - channel]]);
+      //const mask2 = rx.add(ry).less(1.0).where(true, value).expandDims(2).pad([[0, 0], [0, 0], [channel, 15 - channel]]);
+      const mask2 = rx.add(ry).greater(1.0).expandDims(2).pad([[0, 0], [0, 0], [channel, 15 - channel]], 1);
+      const newMask = tf.tensor(new Array(modelData.size.x * modelData.size.y * modelData.channelN).fill(value), [modelData.size.x, modelData.size.y, modelData.channelN]);
+      //modelData.state.assign(modelData.state.mul(mask1));
+      modelData.state.assign(modelData.state.where(mask2, newMask));
     });
   }
 
