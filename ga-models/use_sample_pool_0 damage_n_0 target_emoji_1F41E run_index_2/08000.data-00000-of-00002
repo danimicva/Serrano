@@ -1,0 +1,23 @@
+ÖÛ\ßz
+
+
+dmodel
+
+layer-0
+layer-1
+
+
+kernel
+bias
+
+
+kernel
+bias
+^\
+VARIABLE_VALUEsequential/conv2d/kernel0dmodel/layer-0/kernel/.ATTRIBUTES/VARIABLE_VALUE
+ZX
+VARIABLE_VALUEsequential/conv2d/bias.dmodel/layer-0/bias/.ATTRIBUTES/VARIABLE_VALUE
+`^
+VARIABLE_VALUEsequential/conv2d_1/kernel0dmodel/layer-1/kernel/.ATTRIBUTES/VARIABLE_VALUE
+\Z
+VARIABLE_VALUEsequential/conv2d_1/bias.dmodel/layer-1/bias/.ATTRIBUTES/VARIABLE_VALUE

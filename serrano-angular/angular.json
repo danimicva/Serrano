@@ -110,5 +110,8 @@
       }
     }
   },
-  "defaultProject": "serrano-angular"
+  "defaultProject": "serrano-angular",
+  "cli": {
+    "analytics": false
+  }
 }

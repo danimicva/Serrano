@@ -134,7 +134,7 @@ export class ModelsService {
     "use_sample_pool_1 damage_n_3 target_emoji_1F98E run_index_2"
   ];
 
-  private MODELS_BASE_URL = "http://vps-f81d1879.vps.ovh.net/ga-models/"
+  private MODELS_BASE_URL = "http://mangold-ga-models.s3-website-eu-west-1.amazonaws.com/"
 
 
   public getModelFullPath(folder: string): string {
